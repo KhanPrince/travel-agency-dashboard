@@ -6,10 +6,6 @@ import type { Route } from "./+types/dashboard";
 const { totalUsers, usersJoined, totalTrips, tripsCreated, userRole } =
   dashboardStats;
 
-// export async function clientLoader() {
-//  return await getUser();
-// }
-
 export const clientLoader = async () => getUser();
 
 const dashboard = ({ loaderData }: Route.ComponentProps) => {
