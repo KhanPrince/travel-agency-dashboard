@@ -19,7 +19,6 @@ export const loginWithGoogle = async () => {
 export const getUser = async () => {
   try {
     const user = await account.get();
-    console.log(user);
     if (!user) return redirect("/sign-in");
 
     const { rows } = await database.listRows({
@@ -30,9 +29,10 @@ export const getUser = async () => {
         Query.select(["name", "email", "imageUrl", "joinedAt", "accountId"]),
       ],
     });
-    return rows[0];
+    return rows.length > 0 ? rows[0] : redirect("/sign-in");
   } catch (e) {
-    console.log(e);
+    console.log("Error fetching user", e);
+    return null;
   }
 };
 export const logoutUser = async () => {
@@ -120,9 +120,17 @@ export const storeUserdata = async () => {
     return null;
   }
 };
-export const getExistingUser = async () => {
+export const getExistingUser = async (id: string) => {
   try {
+    const { rows, total } = await database.listRows({
+      databaseId: appwriteConfig.databaseId,
+      tableId: appwriteConfig.userTableId,
+      queries: [Query.equal("accountId", id)],
+    });
+
+    return total > 0 ? rows[0] : null;
   } catch (e) {
-    console.log(e);
+    console.log(" Error fetching existingUser", e);
+    return null;
   }
 };
