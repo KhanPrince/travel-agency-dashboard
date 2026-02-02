@@ -7,7 +7,7 @@ export const loginWithGoogle = async () => {
     // createOAuth2Session takes objct with keys => provider,(success,failure,scopes) => optional
     account.createOAuth2Session({
       provider: OAuthProvider.Google,
-      success: "http://localhost:5173/dashboard",
+      success: "http://localhost:5173/",
       failure: "http://localhost:5173/sign-in",
     });
   } catch (e) {
