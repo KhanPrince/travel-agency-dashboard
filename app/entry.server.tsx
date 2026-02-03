@@ -1,4 +1,5 @@
-import "./instrument.server";
+// while deploying uncomment below line
+// import "./instrument.server";
 
 import * as Sentry from "@sentry/react-router";
 

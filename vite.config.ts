@@ -4,7 +4,6 @@ import {
   type SentryReactRouterBuildOptions,
 } from "@sentry/react-router";
 import tailwindcss from "@tailwindcss/vite";
-import { config } from "process";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
