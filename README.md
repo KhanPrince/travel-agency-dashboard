@@ -24,6 +24,11 @@ Install the dependencies:
 npm install
 ```
 
+The trip country picker uses the REST Countries v5 API. Create an API key at
+[restcountries.com](https://restcountries.com/sign-up) and add it to `.env.local`
+as `RESTCOUNTRIES_API_KEY`. Keep this server-side variable unprefixed by `VITE_`
+so it is not exposed to the browser.
+
 ### Development
 
 Start the development server with HMR:

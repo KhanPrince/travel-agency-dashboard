@@ -13,26 +13,103 @@ import { world_map } from "~/constants/world_map";
 import { ButtonComponent } from "@syncfusion/ej2-react-buttons";
 import { account } from "~/appwrite/client";
 import { useNavigate } from "react-router";
-//loader function to get country list from this website
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
 export const loader = async () => {
-  const response = await fetch(
-    "https://restcountries.com/v3.1/all?fields=name,flag,latlng,maps",
-  );
-  const data = await response.json();
-  return data.map((country: any) => ({
-    //flag is not working properly if i use flags in fetch call fields then i am getting svg and img
-    name: country.flag + " " + country.name.common,
-    coordinates: country.latlng,
-    value: country.name.common,
-    openStreetMap: country.maps?.openStreetMaps,
-  }));
+  const apiKey = process.env.RESTCOUNTRIES_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "RESTCOUNTRIES_API_KEY is not configured on the server. Add a REST Countries API key to your environment.",
+    );
+  }
+
+  const pageSize = 100;
+  const countryRecords: unknown[] = [];
+  let total = 0;
+
+  for (let offset = 0; offset < total || offset === 0; offset += pageSize) {
+    const url = new URL("https://api.restcountries.com/countries/v5");
+    url.searchParams.set(
+      "response_fields",
+      "names.common,flag.emoji,coordinates,links.open_street_maps",
+    );
+    url.searchParams.set("limit", String(pageSize));
+    url.searchParams.set("offset", String(offset));
+
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (!response.ok) {
+      throw new Error(
+        `REST Countries API request failed with status ${response.status}.`,
+      );
+    }
+
+    const payload: unknown = await response.json();
+    if (!isRecord(payload) || !isRecord(payload.data)) {
+      throw new Error("REST Countries API returned an invalid response.");
+    }
+
+    const { objects, meta } = payload.data;
+    if (
+      !Array.isArray(objects) ||
+      !isRecord(meta) ||
+      typeof meta.total !== "number"
+    ) {
+      throw new Error("REST Countries API returned an invalid country list.");
+    }
+
+    total = meta.total;
+    if (objects.length === 0 && offset < total) {
+      throw new Error(
+        "REST Countries API returned an incomplete country list.",
+      );
+    }
+    countryRecords.push(...objects);
+  }
+
+  return countryRecords.flatMap((record): Country[] => {
+    if (!isRecord(record)) return [];
+
+    const names = record.names;
+    const flag = record.flag;
+    const coordinates = record.coordinates;
+    const links = record.links;
+    if (
+      !isRecord(names) ||
+      typeof names.common !== "string" ||
+      !isRecord(coordinates) ||
+      typeof coordinates.lat !== "number" ||
+      typeof coordinates.lng !== "number"
+    ) {
+      return [];
+    }
+
+    const emoji =
+      isRecord(flag) && typeof flag.emoji === "string" ? flag.emoji : "";
+    const openStreetMap =
+      isRecord(links) && typeof links.open_street_maps === "string"
+        ? links.open_street_maps
+        : undefined;
+
+    return [
+      {
+        name: `${emoji ? `${emoji} ` : ""}${names.common}`,
+        coordinates: [coordinates.lat, coordinates.lng],
+        value: names.common,
+        openStreetMap,
+      },
+    ];
+  });
 };
 const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
   const countries = loaderData as Country[];
   const navigate = useNavigate();
   // useState for countries map
   const [formData, setFormData] = useState<TripFormData>({
-    country: countries[0]?.name || "",
+    country: countries[0]?.value || "",
     travelStyle: "",
     interest: "",
     budget: "",
@@ -86,11 +163,22 @@ const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
         }),
       });
 
-      const result: CreateTripResponse = await response.json();
-      if (result?.id) navigate(`/trips/${result.id}`);
-      else console.error("Failed to generate trip");
+      const result: CreateTripResponse & { error?: string } =
+        await response.json();
+
+      if (response.ok && result?.id) {
+        navigate(`/trips/${result.id}`);
+        return;
+      }
+
+      const message = result?.error || "Failed to generate trip";
+      setError(message);
+      console.error("Failed to generate trip", message);
     } catch (e) {
       console.error("Error Generating Trip", e);
+      setError(
+        "Something went wrong while generating the trip. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -110,7 +198,7 @@ const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
       country: formData.country,
       color: "#EA382E",
       coordinates:
-        countries.find((c: Country) => c.name === formData.country)
+        countries.find((c: Country) => c.value === formData.country)
           ?.coordinates || [],
     },
   ];
