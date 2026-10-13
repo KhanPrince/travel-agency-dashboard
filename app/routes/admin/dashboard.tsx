@@ -2,14 +2,19 @@ import { getUser } from "~/appwrite/auth";
 import { Header, StatsCard } from "~/components";
 import TripCard from "~/components/TripCard";
 import { dashboardStats, user, allTrips } from "~/constants";
+import { getAllTrips } from "~/routes/api/trips";
 import type { Route } from "./+types/dashboard";
+
 const { totalUsers, usersJoined, totalTrips, tripsCreated, userRole } =
   dashboardStats;
 
-export const clientLoader = async () => getUser();
+export const clientLoader = async () => {
+  const [user, { trips }] = await Promise.all([getUser(), getAllTrips(8, 0)]);
+  return { user, trips };
+};
 
 const dashboard = ({ loaderData }: Route.ComponentProps) => {
-  const user = loaderData as User | null;
+  const { user, trips } = loaderData;
   return (
     <main className="dashboard wrapper">
       <Header
@@ -45,19 +50,9 @@ const dashboard = ({ loaderData }: Route.ComponentProps) => {
         <h1 className="text-xl font-semibold text-dark-100">Created Trips</h1>
 
         <div className="trip-grid">
-          {allTrips
-            .slice(0, 4)
-            .map(({ id, name, imageUrls, itinerary, tags, estimatedPrice }) => (
-              <TripCard
-                key={id}
-                id={id.toString()}
-                name={name}
-                imageUrl={imageUrls[0]}
-                location={itinerary?.[0]?.location ?? ""}
-                tags={tags}
-                price={estimatedPrice}
-              />
-            ))}
+          {trips.map((trip) => (
+            <TripCard key={trip.id} {...trip} />
+          ))}
         </div>
       </section>
     </main>

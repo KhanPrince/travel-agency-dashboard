@@ -11,7 +11,6 @@ export const loginWithGoogle = async () => {
       failure: "http://localhost:5173/sign-in",
     });
   } catch (e) {
-    console.log("loginWithGoogle", e);
     redirect("/sing-in");
     return null;
   }
@@ -19,7 +18,6 @@ export const loginWithGoogle = async () => {
 export const getUser = async () => {
   try {
     const user = await account.get();
-    if (!user) return redirect("/sign-in");
 
     const { rows } = await database.listRows({
       databaseId: appwriteConfig.databaseId,
@@ -29,9 +27,12 @@ export const getUser = async () => {
         Query.select(["name", "email", "imageUrl", "joinedAt", "accountId"]),
       ],
     });
-    return rows.length > 0 ? rows[0] : redirect("/sign-in");
+
+    if (rows.length === 0) throw redirect("/sign-in");
+    return rows[0];
   } catch (e) {
-    console.log("Error fetching user", e);
+    // let thrown redirects pass through instead of turning them into null
+    if (e instanceof Response) throw e;
     return null;
   }
 };
@@ -40,7 +41,6 @@ export const logoutUser = async () => {
     await account.deleteSession({ sessionId: "current" });
     return true;
   } catch (e) {
-    console.log("logOut User Error", e);
     return false;
   }
 };
@@ -53,7 +53,6 @@ export const getGooglePicture = async () => {
     const OAuthToken = session.providerAccessToken;
 
     if (!OAuthToken) {
-      console.log("No OAuth token available");
       return null;
     }
 
@@ -147,7 +146,6 @@ export const getAllUsers = async (limit: number, offset: number) => {
 
     return { users, total };
   } catch (e) {
-    console.log("Error fetching all users ", e);
     return { users: [], total: 0 };
   }
 };
