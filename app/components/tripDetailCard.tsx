@@ -26,11 +26,11 @@ const TripDetailCard = ({
 
   const locationLabel =
     typeof location === "string"
-      ? location
+      ? location + ", " + country
       : ((location as any)?.city ?? country);
 
   return (
-    <div className="trip-card w-full h-auto">
+    <div className="trip-card w-full h-auto ">
       {/* Gallery: horizontal swipe on mobile, collage grid on lg+ */}
       <TripGallery images={imageUrls} alt={name} />
 
@@ -106,7 +106,7 @@ const TripDetailCard = ({
           <h3 className="font-semibold mb-2">Itinerary</h3>
           {itinerary?.map((day: any) => (
             <div key={day.day} className="mb-4">
-              <h4 className="font-medium">
+              <h4 className="font-medium mb-4">
                 Day {day.day}: {day.location}
               </h4>
               <ul className="space-y-1">

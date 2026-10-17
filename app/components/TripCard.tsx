@@ -16,13 +16,13 @@ const TripCard = ({
 }: TripCardProps) => {
   // path gives url path from react-router
   const { pathname } = useLocation();
+  const isBrowserView =
+    pathname === "/" ||
+    pathname === "/dashboard" ||
+    pathname.startsWith("/travel");
   return (
     <Link
-      to={
-        pathname === "/" || pathname.startsWith("/travel")
-          ? `/travel/${id}`
-          : `/trips/${id}`
-      }
+      to={isBrowserView ? `/travel/${id}` : `/trips/${id}`}
       className="trip-card"
     >
       <img src={imageUrl} alt={name} />

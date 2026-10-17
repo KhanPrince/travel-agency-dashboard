@@ -1,16 +1,13 @@
 import { ButtonComponent } from "@syncfusion/ej2-react-buttons";
 import { Link, redirect } from "react-router";
-import { loginWithGoogle } from "~/appwrite/auth";
+import { loginWithGoogle, getCurrentRole } from "~/appwrite/auth";
 import { account } from "~/appwrite/client";
 
 export async function clientLoader() {
-  try {
-    const user = await account.get();
-
-    if (user.$id) return redirect("/");
-  } catch (e) {
-    console.log("Error fetching user", e);
-  }
+  const { role } = await getCurrentRole();
+  if (role === "user") return redirect("/travel");
+  if (role === "admin") return redirect("/dashboard");
+  return null;
 }
 const SignIn = () => {
   return (

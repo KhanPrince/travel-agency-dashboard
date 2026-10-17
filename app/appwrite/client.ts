@@ -6,6 +6,7 @@ export const appwriteConfig = {
   databaseId: import.meta.env.VITE_APPWRITE_DATABASE_ID,
   userTableId: import.meta.env.VITE_APPWRITE_USERS_TABLE_ID,
   tripTableId: import.meta.env.VITE_APPWRITE_TRIPS_TABLE_ID,
+  adminRequestsTableId: import.meta.env.VITE_APPWRITE_ADMIN_REQUESTS_TABLE_ID,
 };
 
 const client = new Client()

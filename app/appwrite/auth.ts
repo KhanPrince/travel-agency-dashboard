@@ -1,18 +1,35 @@
-import { ID, OAuthProvider, Query } from "appwrite";
+import { ID, OAuthProvider, Permission, Query, Role } from "appwrite";
 import { account, appwriteConfig, database } from "./client";
 import { redirect } from "react-router";
 
-export const loginWithGoogle = async () => {
+export type SignUpIntent = "user" | "admin";
+
+export const loginWithGoogle = async (intent: SignUpIntent = "user") => {
   try {
     // createOAuth2Session takes objct with keys => provider,(success,failure,scopes) => optional
     account.createOAuth2Session({
       provider: OAuthProvider.Google,
-      success: "http://localhost:5173/",
-      failure: "http://localhost:5173/sign-in",
+      success: `${window.location.origin}/auth/callback?intent=${intent}`,
+      failure: `${window.location.origin}/sign-in`,
     });
   } catch (e) {
-    redirect("/sing-in");
+    redirect("/sign-in");
     return null;
+  }
+};
+
+export type UserRole = "guest" | "user" | "admin";
+
+export const getCurrentRole = async () => {
+  try {
+    const authUser = await account.get(); // throws when not signed in
+    const row =
+      (await getExistingUser(authUser.$id)) ?? (await storeUserData());
+
+    const role: UserRole = row?.status === "admin" ? "admin" : "user";
+    return { role, user: row };
+  } catch {
+    return { role: "guest" as UserRole, user: null };
   }
 };
 export const getUser = async () => {
@@ -24,7 +41,14 @@ export const getUser = async () => {
       tableId: appwriteConfig.userTableId,
       queries: [
         Query.equal("accountId", user.$id),
-        Query.select(["name", "email", "imageUrl", "joinedAt", "accountId"]),
+        Query.select([
+          "name",
+          "email",
+          "imageUrl",
+          "joinedAt",
+          "accountId",
+          "status",
+        ]),
       ],
     });
 
@@ -81,14 +105,12 @@ export const getGooglePicture = async () => {
     console.log(e);
   }
 };
-export const storeUserdata = async () => {
+export const storeUserData = async () => {
   try {
     const user = await account.get();
 
     if (!user) return null;
 
-    // check if user already exists in the database
-    // later to check with getRow
     const { rows } = await database.listRows({
       databaseId: appwriteConfig.databaseId,
       tableId: appwriteConfig.userTableId,
@@ -111,7 +133,9 @@ export const storeUserdata = async () => {
         name: user.name,
         imageUrl: imageUrl || "",
         joinedAt: new Date().toISOString(),
+        status: "user",
       },
+      permissions: [Permission.read(Role.user(user.$id))],
     });
     return newUser;
   } catch (e) {
@@ -147,5 +171,36 @@ export const getAllUsers = async (limit: number, offset: number) => {
     return { users, total };
   } catch (e) {
     return { users: [], total: 0 };
+  }
+};
+
+export const hasAdminRequest = async (accountId: string) => {
+  try {
+    await database.getRow({
+      databaseId: appwriteConfig.databaseId,
+      tableId: appwriteConfig.adminRequestsTableId,
+      rowId: accountId, // request rows use the account id as their row id
+    });
+    return true;
+  } catch {
+    return false; // 404 means no request yet
+  }
+};
+
+export const requestAdminAccess = async (user: {
+  $id: string;
+  accountId: string;
+}) => {
+  try {
+    await database.createRow({
+      databaseId: appwriteConfig.databaseId,
+      tableId: appwriteConfig.adminRequestsTableId,
+      rowId: user.accountId,
+      data: { userId: user.$id },
+      permissions: [Permission.read(Role.user(user.accountId))],
+    });
+    return true;
+  } catch (e) {
+    return (e as any)?.code === 409; // already requested counts as success
   }
 };

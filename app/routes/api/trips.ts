@@ -58,7 +58,7 @@ const mapTripDetail = (row: any) => {
     interests: row.interests as string,
     groupType: row.groupType as string,
     country: row.country as string,
-
+    userId: row.userId as string,
     itinerary: toArray(row.itinerary),
     bestTimeToVisit: toArray(row.bestTimeToVisit),
     weatherInfo: toArray(row.weatherInfo),

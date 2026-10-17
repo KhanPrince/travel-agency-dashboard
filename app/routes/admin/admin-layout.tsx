@@ -2,23 +2,16 @@ import { Outlet, redirect } from "react-router";
 import { SidebarComponent } from "@syncfusion/ej2-react-navigations";
 import { MobileSidebar, NavItems } from "~/components";
 import { account } from "~/appwrite/client";
-import { getExistingUser, storeUserdata } from "~/appwrite/auth";
+import { getCurrentRole } from "~/appwrite/auth";
+import Footer from "~/components/Footer";
 
 export async function clientLoader() {
   try {
-    const user = await account.get();
+    const { role, user } = await getCurrentRole();
 
-    if (!user.$id) {
-      console.log(user.$id);
-      return redirect("/sign-in");
-    }
-
-    const existingUser = await getExistingUser(user.$id);
-    // user should not access dashboard
-    if (existingUser?.status === "user") {
-      return redirect("/");
-    }
-    return existingUser?.$id ? existingUser : await storeUserdata();
+    if (role === "guest") return redirect("/sign-in");
+    if (role === "user") return redirect("/travel");
+    return user;
   } catch (e) {
     console.log("Error in clientLoader", e);
     return redirect("/sign-in");
@@ -38,9 +31,12 @@ const AdminLayout = () => {
       </aside>
 
       {/* content */}
-      <aside className="children ">
-        <Outlet />
-      </aside>
+      <main className="children ">
+        <div className="flex-1">
+          <Outlet />
+        </div>
+        <Footer />
+      </main>
     </div>
   );
 };

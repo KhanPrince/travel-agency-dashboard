@@ -16,7 +16,7 @@ const TripGallery = ({ images, alt }: { images?: string[]; alt: string }) => {
   return (
     <div
       className="
-        flex flex-col gap-3 px-4.5
+        flex flex-col gap-3 
         lg:grid lg:grid-cols-3 lg:grid-rows-2 lg:h-[420px] lg:px-0
       "
     >
