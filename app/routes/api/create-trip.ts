@@ -9,6 +9,7 @@ import {
   interests as interestOptions,
   travelStyles,
 } from "~/constants";
+import { count } from "node:console";
 
 const json = (body: unknown, status = 200) => Response.json(body, { status });
 
@@ -40,8 +41,38 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ error: "Invalid trip information." }, 400);
   }
 
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
   const unsplashApiKey = process.env.UNSPLASH_ACCESS_KEY!;
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+
+  async function findImages(
+    country: string,
+    interests: string,
+    travelStyle: string,
+  ) {
+    const queries = [
+      `${country} ${interests} ${travelStyle}`,
+      `${country} travel`,
+      `${country} landscape`,
+    ];
+    for (const q of queries) {
+      try {
+        const res = await fetch(
+          `https://api.unsplash.com/search/photos?query=${encodeURIComponent(q)}&per_page=3&orientation=landscape&client_id=${process.env.UNSPLASH_ACCESS_KEY}`,
+          { signal: AbortSignal.timeout(5000) },
+        );
+        if (!res.ok) continue;
+        const json = await res.json();
+        const urls = (json?.results ?? [])
+          .map((r: any) => r?.urls?.regular)
+          .filter(Boolean)
+          .slice(0, 3);
+        if (urls.length) return urls as string[];
+      } catch {
+        /* try the next query */
+      }
+    }
+    return [];
+  }
 
   try {
     const prompt = `Generate a ${numberOfDays}-day travel itinerary for ${country} based on the following user information:
@@ -103,27 +134,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     const trip = JSON.parse(responseText);
 
-    const imageQuery = encodeURIComponent(
-      `${country} ${interests} ${travelStyle}`,
-    );
-    const imageResponse = await fetch(
-      `https://api.unsplash.com/search/photos?query=${imageQuery}&per_page=3&client_id=${unsplashApiKey}`,
-      {
-        headers: { Accept: "application/json" },
-      },
-    );
-
-    if (!imageResponse.ok) {
-      throw new Error(
-        `Unsplash request failed with status ${imageResponse.status}`,
+    const imageUrls = await findImages(country, interests, travelStyle);
+    if (imageUrls.length === 0) {
+      return Response.json(
+        {
+          error:
+            "We couldn't find photos for this destination. Try another country or interest.",
+        },
+        { status: 502 },
       );
     }
-
-    const imageData = await imageResponse.json();
-    const imageUrls = (imageData?.results ?? [])
-      .slice(0, 3)
-      .map((result: any) => result?.urls?.regular || null)
-      .filter(Boolean);
 
     const row = await db.createRow({
       databaseId: appwriteConfig.databaseId,
