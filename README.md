@@ -1,92 +1,180 @@
-# Welcome to React Router!
+Travel Agency Dashboard
 
-A modern, production-ready template for building full-stack React applications using React Router.
+AI-powered trip planning app. Admins generate complete day-by-day itineraries with Gemini, and anyone can browse the results. Built with React Router 7 (SSR), Appwrite, Gemini and Unsplash.
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
+<!-- Add 2-3 screenshots or a GIF here: dashboard, trip detail, create trip --> <!-- ![Dashboard](docs/dashboard.png) -->
 
-## Features
+Features
+Public dashboard: browse every trip with infinite scroll, no account needed.
+AI itinerary generation: pick a country, duration, travel style, interests, budget and group type. Gemini returns a structured itinerary (activities per day, best time to visit, weather, price estimate) and Unsplash supplies photos.
+Three access levels: guest, signed-in user, admin. Restricted pages show a gate with sign-in or "request admin access" instead of a blank redirect.
+Admin requests: users ask for admin access from the app; an admin approves manually.
+Trip management: admins view, edit and delete their own trips. Everyone else gets a read-only detail page.
+User management: admin-only table of all users (Syncfusion grid).
+Google sign-in through Appwrite OAuth.
+Error monitoring with Sentry (production only, optional).
+Access levels
+Role Dashboard and trip details AI Trips, Create Trip, All Users
+Guest yes gate with sign-in options
+User yes gate with "request admin access"
+Admin yes full access
 
-- 🚀 Server-side rendering
-- ⚡️ Hot Module Replacement (HMR)
-- 📦 Asset bundling and optimization
-- 🔄 Data loading and mutations
-- 🔒 TypeScript by default
-- 🎉 TailwindCSS for styling
-- 📖 [React Router docs](https://reactrouter.com/)
+New sign-ups are regular users. Admin access is granted manually.
 
-## Getting Started
+Tech stack
+Frontend / SSR: React 19, React Router 7, Tailwind CSS 4, Syncfusion (grid, combo box, maps, buttons, sidebar)
+Backend services: Appwrite (auth, database), Google Gemini (@google/genai), Unsplash API, REST Countries API
+Monitoring: Sentry
+Deployment: Docker (multi-stage, Node 22 Alpine)
+Architecture
+Google OAuth, reads(session)
+POST /trips/api/create-trip+ JWT
+verify JWT, check adminrole, write row
+Browser
+Appwrite
+React Router server
+Gemini
+Unsplash
 
-### Installation
+How trip creation is protected
 
-Install the dependencies:
+The browser creates a short-lived Appwrite JWT and sends it in the Authorization header.
+The server builds a fresh Appwrite client from that JWT, loads the user, and checks the admin status. The user ID is never taken from the request body.
+Input is validated against allow-lists (country length, 1-10 days, travel style, interests, budget, group type) before anything reaches Gemini.
+The trip row is created with read access for everyone and update/delete access for its creator only.
 
-```bash
-npm install
-```
+Route guards in the UI are a convenience. Real enforcement is the JWT check on the API and Appwrite table permissions.
 
-The trip country picker uses the REST Countries v5 API. Create an API key at
-[restcountries.com](https://restcountries.com/sign-up) and add it to `.env.local`
-as `RESTCOUNTRIES_API_KEY`. Keep this server-side variable unprefixed by `VITE_`
-so it is not exposed to the browser.
+Project structure
+app/
+appwrite/ Appwrite client and auth helpers (roles, admin requests)
+components/ Header, TripCard, InfiniteTripGrid, AccessGate, CreatorCta, ...
+constants/ Select options, sidebar items, world map data
+routes/
+root/ home redirect, sign-in, OAuth callback
+admin/ layout, dashboard, trips, create/edit/detail, all-users
+api/ create-trip (server action), trips (data access)
+.server/ server-only helpers (require-admin)
+public/assets/ icons and images
+Getting started
+Prerequisites
+Node.js 22+
+An Appwrite project (cloud or self-hosted)
+API keys: Gemini, Unsplash, REST Countries, a Syncfusion license key (community license is free)
 
-### Development
+1. Install
+   bash
+   git clone https://github.com/KhanPrince/travel-agency-dashboard.git
+   cd travel-agency-dashboard
+   npm ci
+   cp .env.example .env.local
+2. Configure Appwrite
 
-Start the development server with HMR:
+Create a database with three tables.
 
-```bash
-npm run dev
-```
+users
 
-Your application will be available at `http://localhost:5173`.
+Column Type
+accountId string (unique index)
+name, email, imageUrl string
+joinedAt datetime
+status string (user or admin)
 
-## Building for Production
+trips
 
-Create a production build:
+Column Type
+name, description, estimatedPrice string
+duration integer
+budget, travelStyle, country, interests, groupType string
+bestTimeToVisit, weatherInfo, imageUrls string array
+location, itinerary string (JSON, itinerary needs a large size)
+createdAt datetime
+userId string (index)
 
-```bash
-npm run build
-```
+adminRequests
 
-## Deployment
+Column Type
+userId string
 
-### Docker Deployment
+Permissions
 
-To build and run using Docker:
+Table Table-level permissions
+trips Read: Any · Create: Users · row security on
+users Create: Users · row security on · Read: restrict to admins (for example the admin label)
+adminRequests Create: Users · row security on
 
-```bash
-docker build -t my-app .
+Also in the Appwrite console:
 
-# Run the container
-docker run -p 3000:3000 my-app
-```
+Auth → Settings: enable the Google OAuth2 provider.
+Overview → Platforms: add a Web platform for localhost and your production domain.
+Never put an Appwrite API key in a VITE\_ variable. Nothing in this app needs one. 3. Environment variables
 
-The containerized application can be deployed to any platform that supports Docker, including:
+Copy .env.example to .env.local and fill it in.
 
-- AWS ECS
-- Google Cloud Run
-- Azure Container Apps
-- Digital Ocean App Platform
-- Fly.io
-- Railway
+Variable Where it runs Purpose
+VITE_APPWRITE_API_ENDPOINT build + browser Appwrite endpoint
+VITE_APPWRITE_PROJECT_ID build + browser Appwrite project
+VITE_APPWRITE_DATABASE_ID build + browser Database ID
+VITE_APPWRITE_USERS_TABLE_ID build + browser Users table
+VITE_APPWRITE_TRIPS_TABLE_ID build + browser Trips table
+VITE_APPWRITE_ADMIN_REQUESTS_TABLE_ID build + browser Admin requests table
+VITE_SYNCFUSION_LICENSE_KEY build + browser Syncfusion license
+GEMINI_API_KEY server only Itinerary generation
+UNSPLASH_ACCESS_KEY server only Trip photos
+RESTCOUNTRIES_API_KEY server only Country list
+SENTRY_AUTH_TOKEN build only Source map upload (optional)
+VITE_SENTRY_DSN, SENTRY_DSN browser / server Error reporting (optional)
 
-### DIY Deployment
+VITE\_ variables are baked into the bundle at build time and are visible in the browser. Keep every secret without that prefix.
 
-If you're familiar with deploying Node applications, the built-in app server is production-ready.
+4. Run
+   bash
+   npm run dev # http://localhost:5173
+   npm run typecheck
+   npm run build
+   npm run start
+5. Make yourself an admin
 
-Make sure to deploy the output of `npm run build`
+Sign in once with Google. Then, in the Appwrite console, set your row's status to admin in the users table (and add the admin label to your account if you restricted users-table reads to that label).
 
-```
-├── package.json
-├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
-├── build/
-│   ├── client/    # Static assets
-│   └── server/    # Server-side code
-```
+Docker
 
-## Styling
+The VITE\_\* values are needed at build time, so pass them as build args.
 
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
+bash
+docker build \
+ --build-arg VITE_APPWRITE_API_ENDPOINT=... \
+ --build-arg VITE_APPWRITE_PROJECT_ID=... \
+ --build-arg VITE_APPWRITE_DATABASE_ID=... \
+ --build-arg VITE_APPWRITE_USERS_TABLE_ID=... \
+ --build-arg VITE_APPWRITE_TRIPS_TABLE_ID=... \
+ --build-arg VITE_APPWRITE_ADMIN_REQUESTS_TABLE_ID=... \
+ --build-arg VITE_SYNCFUSION_LICENSE_KEY=... \
+ -t travel-agency .
 
----
+docker run -p 3000:3000 \
+ -e GEMINI_API_KEY=... \
+ -e UNSPLASH_ACCESS_KEY=... \
+ -e RESTCOUNTRIES_API_KEY=... \
+ travel-agency
+Deployment checklist
+Add the production domain as a Web platform in Appwrite.
+Add the production redirect URLs to your Google OAuth client.
+Set the server-only variables on the host. Never commit .env\* files.
+Open the site in a private window and confirm the dashboard loads for guests.
+Confirm POST /trips/api/create-trip returns 401 without a token.
+Performance notes
+List queries select only the fields a card needs, so large itinerary JSON is not downloaded.
+Infinite scroll uses an IntersectionObserver with a "Load more" fallback.
+Syncfusion stylesheets are imported per route instead of globally.
+Sentry Replay and feedback widgets are not bundled.
+Roadmap
+Rate limiting and a daily cap on generations
+Unit tests for input validation and CI on every push
+Cursor-based pagination
+Server-rendered public pages for faster first paint and link previews
+License
 
-Built with ❤️ using React Router.
+MIT. See LICENSE.
+
+<!-- Credits: if the project started from a tutorial or template, name it here and list what you built yourself (roles and admin requests, JWT-protected API, schema design, infinite scroll, validation). -->
