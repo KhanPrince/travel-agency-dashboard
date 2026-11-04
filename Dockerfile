@@ -28,5 +28,4 @@ COPY --from=build /app/build ./build
 COPY instrument.server.mjs ./
 USER node
 EXPOSE 3000
-CMD ["npm", "run", "start"]
 CMD ["sh", "-c", "NODE_OPTIONS='--import ./instrument.server.mjs' ./node_modules/.bin/react-router-serve ./build/server/index.js"]

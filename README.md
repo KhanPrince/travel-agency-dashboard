@@ -2,16 +2,11 @@ Travel Agency Dashboard
 
 AI-powered trip planning app. Admins generate complete day-by-day itineraries with Gemini, and anyone can browse the results. Built with React Router 7 (SSR), Appwrite, Gemini and Unsplash.
 
-
 [Guest Dashboard]<img width="1920" height="1080" alt="guest dashboard" src="https://github.com/user-attachments/assets/9c83d372-d626-4284-9ac8-01c6b3a4c233" />
 [Authorized user dashboard]<img width="1920" height="1080" alt="Authorized users Dashboard" src="https://github.com/user-attachments/assets/a0a6d5dd-3e22-407f-a24b-25628d4f46c7" />
 [users page]<img width="1920" height="1080" alt="Users page" src="https://github.com/user-attachments/assets/7bbc0360-cbde-4ff6-b682-bd62b202faa0" />
 
 [Ai Trips page]<img width="1920" height="1080" alt="AI trips Page" src="https://github.com/user-attachments/assets/99c222dc-b426-4607-a134-741327b8662a" />
-
-
-
-<!-- Add 2-3 screenshots or a GIF here: dashboard, trip detail, create trip --> <!-- ![Dashboard](docs/dashboard.png) -->
 
 Features
 Public dashboard: browse every trip with infinite scroll, no account needed.
