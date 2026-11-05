@@ -1,5 +1,7 @@
 Travel Agency Dashboard
 
+[website url](https://travel-agency-dashboard-eight-gray.vercel.app/)
+
 AI-powered trip planning app. Admins generate complete day-by-day itineraries with Gemini, and anyone can browse the results. Built with React Router 7 (SSR), Appwrite, Gemini and Unsplash.
 
 [Guest Dashboard]<img width="1920" height="1080" alt="guest dashboard" src="https://github.com/user-attachments/assets/9c83d372-d626-4284-9ac8-01c6b3a4c233" />
